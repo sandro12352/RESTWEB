@@ -19,7 +19,7 @@ class Server {
     constructor(options) {
         this.app = (0, express_1.default)();
         const { PORT, PUBLIC_PATH = 'public', routes } = options;
-        this.port = PORT;
+        this.port = PORT || 3000;
         this.publicPath = PUBLIC_PATH;
         this.routes = routes;
     }

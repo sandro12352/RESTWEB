@@ -17,7 +17,7 @@ export class Server{
 
     constructor(options:Options){
         const {PORT,PUBLIC_PATH='public',routes } = options
-        this.port = PORT;
+        this.port = PORT || 3000;
         this.publicPath = PUBLIC_PATH;
         this.routes = routes;
     }
