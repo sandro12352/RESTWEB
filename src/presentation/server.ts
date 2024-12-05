@@ -1,4 +1,5 @@
 import express, { Router } from 'express'
+import { PrismaClient } from '@prisma/client';
 import path from 'path';
 
 interface Options{
@@ -24,6 +25,10 @@ export class Server{
     
 
     async start(){
+
+        //Crear Usuario
+        const prisma = new PrismaClient();
+        
 
         //middlewares
         this.app.use(express.json());

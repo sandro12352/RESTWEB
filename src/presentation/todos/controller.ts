@@ -1,87 +1,101 @@
 import { Request, Response } from "express"
+import { prisma } from "../../data/mysql";
+import { CreateTodoDto } from "../../domain/dtos";
 
-const todos = [
-    {id:1,nombre:'sandro',apellido:'pachas'},
-    {id:2,nombre:'pedro',apellido:'espichan'},
-    {id:3,nombre:'franco',apellido:'diaz'},
-]
+
 
 export class TodosController{
 
     //DI
     constructor(){}
-   
 
-    public getTodos  =  (req:Request,res:Response)=>{
-         res.json(todos);
-         return;
+
+    public getTodos  = async (req:Request,res:Response)=>{
+        const todos = await prisma.todo.findMany();
+        res.json(todos);
+        
     }
 
-    public getTodoById = (req:Request,res:Response)=>{
+    public getTodoById =async (req:Request,res:Response)=>{
         const id = +req.params.id;
-        const todo = todos.find(todo=>todo.id ===id);
+        const todo = await prisma.todo.findFirst({
+            where:{id:id}
+        })
         
-        if(!todo)  res.status(404).json({error:`Todo with id ${id} not found`}); 
-
+        if(!todo) {
+            res.status(404).json({error:`Todo with id ${id} not found`}); 
+            return;
+        } 
         res.json(todo)
     }
 
-    public createTodo =  (req:Request,res:Response)=>{
-        const {nombre,apellido} = req.body;
-        const newTodo = {
-            id:todos.length + 1,
-            nombre:nombre,
-            apellido:apellido,
-        }
-        todos.push(newTodo)
-        res.send(newTodo);
+    public createTodo = async (req:Request,res:Response)=>{
+        const [error,createTodoDto] = CreateTodoDto.create(req.body);
+
+        if(error) { 
+            res.status(404).json({error})
+            return;
+        };
+         
+        const todo = await prisma.todo.create({
+            data:createTodoDto!
+        })
+        
+        res.json(todo);
 
     }
 
-    public updateTodo = (req:Request,res:Response)=>{
+    public updateTodo = async (req:Request,res:Response)=>{
         const id = +req.params.id;
+        const {text,completedAt} =  req.body;
         if(isNaN (id)) {
             res.status(404).json({error:`ID argument is not a number`}); 
             return;
         } 
-
-        const  todo = todos.find(todo=>todo.id===id)
+        const todo = await prisma.todo.findFirst({
+            where:{id}
+        })
         if(!todo) {
             res.status(404).json({error:`Todo with id ${id} not found`}); 
             return;
         }  
 
-
-        const {nombre,apellido} =  req.body;
-
-        todo.nombre = nombre || todo.nombre,
-        todo.apellido=apellido || todo.apellido;
+        const  updateTodo =await prisma.todo.update({
+            where:{id},
+            data:{
+                text,
+                completedAt
+            }
+        })
+        res.json(updateTodo);
+        
 
 
         res.send(todo)
     }
 
 
-    public deleteTodo = (req:Request,res:Response)=>{
+    public deleteTodo =async (req:Request,res:Response)=>{
         const id = +req.params.id;
         if (isNaN(id)) {
              res.status(400).json({ error: 'ID is not a valid number' });
              return;
         }
-    
-        // Encontrar el índice del todo con el ID especificado
-        const index = todos.findIndex((todo) => todo.id === id);
-    
-        // Si no se encuentra el todo, devolvemos un error 404
-        if (index === -1) {
-             res.status(404).json({ error: `Todo with ID ${id} not found` });
-             return
-        }else{
-             // Eliminamos el todo encontrado y enviamos la respuesta
-            const deletedTodo = todos.splice(index, 1); // `splice` devuelve un array con los elementos eliminados
-            res.json(deletedTodo) ;
-            return;
+        const todo = await prisma.todo.findFirst({
+            where:{id}
+        })
+        
+        if (!todo) {
+            res.status(404).json({error:`Todo with id ${id} not found`}); 
+            return
         }
+
+        const deletedTodo =await prisma.todo.delete({
+            where:{id:id},
+        })
+
+        res.json(deletedTodo);
+        
     
        
       
