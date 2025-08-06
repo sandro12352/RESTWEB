@@ -1,19 +1,23 @@
 import { Request, Response } from "express"
 import { prisma } from "../../data/mysql";
-import { CreateTodoDto } from "../../domain/dtos";
+import { CreateTodoDto, UpdateTodoDto } from "../../domain/dtos";
+import { TodoRepository } from "../../domain";
 
 
 
 export class TodosController{
 
     //DI
-    constructor(){}
+    constructor(
+        private readonly repository:TodoRepository,
+    ){}
 
 
     public getTodos  = async (req:Request,res:Response)=>{
-        const todos = await prisma.todo.findMany();
-        res.json(todos);
-        
+        const todos =await this.repository.getAll();
+         res.json(todos);
+         console.log(todos)
+         return        
     }
 
     public getTodoById =async (req:Request,res:Response)=>{
@@ -32,26 +36,25 @@ export class TodosController{
     public createTodo = async (req:Request,res:Response)=>{
         const [error,createTodoDto] = CreateTodoDto.create(req.body);
 
-        if(error) { 
+
+        try {
+            const todo = await prisma.todo.create({
+                data:createTodoDto!
+            })
+            res.json(todo);
+        } catch (error) {
             res.status(404).json({error})
             return;
-        };
-         
-        const todo = await prisma.todo.create({
-            data:createTodoDto!
-        })
-        
-        res.json(todo);
+        }
+
+       
 
     }
 
     public updateTodo = async (req:Request,res:Response)=>{
         const id = +req.params.id;
-        const {text,completedAt} =  req.body;
-        if(isNaN (id)) {
-            res.status(404).json({error:`ID argument is not a number`}); 
-            return;
-        } 
+        const [error,updateTodoDto] = UpdateTodoDto.create({...req.body,id});
+        
         const todo = await prisma.todo.findFirst({
             where:{id}
         })
@@ -62,10 +65,7 @@ export class TodosController{
 
         const  updateTodo =await prisma.todo.update({
             where:{id},
-            data:{
-                text,
-                completedAt
-            }
+            data:updateTodoDto!.values
         })
         res.json(updateTodo);
         
